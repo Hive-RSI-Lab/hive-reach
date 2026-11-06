@@ -1,0 +1,1 @@
+{"name": "conn-ntfy", "description": "Push to the person's phone through ntfy. Outbound only, and on the public server it never carries content: just a line saying something is waiting.", "kind": "push", "conn": true}

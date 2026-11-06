@@ -1,0 +1,1 @@
+{"name": "arm-watch", "description": "Watch RSS/Atom feeds and pages and post what changed, labelled as untrusted page text. Polite: conditional requests, 15 minute minimum, size limit, public addresses only.", "kind": "arm", "bin": {"watch": "watch.py"}}

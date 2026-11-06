@@ -1,0 +1,17 @@
+# arm-browser
+
+An agent-driven browser: open a page, click, type, read. `~/modules/web/web.mjs` only searches, fetches and takes screenshots (no click or type), so this is a small wrapper over the same `chrome_pipe.mjs` (debug pipe, no port opens).
+
+    browser run URL [--steps FILE|-] [--max N]
+
+Steps are a JSON list: `{"op":"click","selector":"css"}`, `{"op":"type","selector":"css","text":"..."}`, `{"op":"wait","ms":500}`, `{"op":"text"}`. Anything else is refused.
+
+## Guards
+
+- Always a throwaway profile: a fresh `browser-*` dir in the temp dir, deleted afterwards.
+- `--user-data-dir` is accepted only if it is already a real, empty, own-user `browser-*` directory directly in the temp dir (no symlinks). Your home, your real Chrome profile or any used dir is refused before Chrome starts. Tested.
+- No other Chrome flag passes through. Only http(s) URLs.
+- Page text comes back quoted, labelled "untrusted data", with mentions stripped. Sign-ins do not exist here: never type passwords or secrets, and the person does any signing up.
+- Not built: DNS or private-address filtering (as in arm-watch), so do not point it at your own network pages.
+
+Tests: `python3 -I test_browser.py` (needs node; a fake Chrome records its argv, so no real Chrome was driven, and the click/type path is untested against a real page).

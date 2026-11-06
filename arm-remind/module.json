@@ -1,0 +1,1 @@
+{"name": "arm-remind", "description": "Reminders: post into a thread at a time or on a schedule, to an agent the setter names or to the person. H2 had no reminder of its own.", "kind": "arm", "bin": {"remind": "remind.py"}}

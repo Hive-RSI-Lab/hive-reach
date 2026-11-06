@@ -1,0 +1,1 @@
+{"name": "conn-teams", "description": "Post a short note into a Microsoft Teams channel through a Workflows webhook the person made. Outbound only.", "kind": "push", "conn": true}

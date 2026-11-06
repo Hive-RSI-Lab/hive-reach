@@ -1,0 +1,1 @@
+{"name": "arm-browser", "description": "Agent-driven browser (open, click, type, read) in a throwaway Chrome profile. Refuses any profile that is not a fresh temp dir. Page text comes back labelled as untrusted data.", "kind": "arm", "bin": {"browser": "browser.mjs"}}

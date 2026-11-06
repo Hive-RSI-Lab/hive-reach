@@ -1,0 +1,1 @@
+{"name": "arm-hook", "description": "Outgoing webhooks: send a short message to a URL the person has approved, never a secret, never followed to a redirect.", "kind": "arm", "bin": {"hook": "hook.py"}}

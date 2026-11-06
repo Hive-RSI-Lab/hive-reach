@@ -1,0 +1,1 @@
+{"name": "conn-gotify", "description": "Push to the person's phone through their own Gotify server. Outbound only, and content-free unless the server is https and the person allowed words.", "kind": "push", "conn": true}

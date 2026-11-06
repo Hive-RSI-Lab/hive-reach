@@ -1,0 +1,1 @@
+{"name": "conn-discord", "description": "Talk to the hive from Discord: a bot of the person's, direct messages only, over an outbound gateway connection with no port.", "kind": "chat", "conn": true}

@@ -1,0 +1,1 @@
+{"name": "conn-webhooks", "description": "Receives signed webhooks on loopback only and posts them to a chosen thread as labelled, untrusted data. Runs from its own unit, not `conn on`.", "kind": "arm", "conn": true}

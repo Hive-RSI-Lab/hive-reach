@@ -1,0 +1,13 @@
+{
+ "name": "reach",
+ "description": "Ways between the Hive and the world, each guarded: connectors to reach the person in other apps (Telegram, Discord, Matrix, Signal, WhatsApp, email, push and 13 more; all off until set up), and arms out (browser, read-only calendar, Home Assistant, webhooks, reminders, feed watch).",
+ "bin": {
+  "conn": "conn/conn_cli.py",
+  "browser": "arm-browser/browser.mjs",
+  "cal": "arm-calendar/cal.py",
+  "ha": "arm-homeassistant/ha.py",
+  "hook": "arm-hook/hook.py",
+  "remind": "arm-remind/remind.py",
+  "watch": "arm-watch/watch.py"
+ }
+}

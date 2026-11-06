@@ -1,0 +1,1 @@
+{"name": "conn-matrix", "description": "Talk to the hive from Matrix: a bot account of the person's on a server that already exists, two-person unencrypted rooms only, by long poll with no port.", "kind": "chat", "conn": true}

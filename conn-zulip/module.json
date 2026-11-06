@@ -1,0 +1,1 @@
+{"name": "conn-zulip", "description": "Talk to the hive from Zulip private messages, through a bot of the person's on a server that already exists.", "kind": "chat", "conn": true}

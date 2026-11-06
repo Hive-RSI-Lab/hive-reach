@@ -1,0 +1,1 @@
+{"name": "conn", "description": "Connectors: reach the person through other apps. The shared base (private chats only, pairing, one chat per board thread, tagging, rate cap) and the `conn` command; each app is a conn-<name> module.", "bin": {"conn": "conn_cli.py"}}

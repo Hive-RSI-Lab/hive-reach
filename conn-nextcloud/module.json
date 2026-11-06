@@ -1,0 +1,1 @@
+{"name": "conn-nextcloud", "description": "Talk to the hive from Nextcloud Talk one-to-one chats, polling a Nextcloud that already exists with an app password of the person's.", "kind": "chat", "conn": true}

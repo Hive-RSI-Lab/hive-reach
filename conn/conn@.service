@@ -1,0 +1,15 @@
+[Unit]
+Description=H2 connector %i (connects outwards, no port)
+
+[Service]
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStartPre=/usr/bin/python3 -I %h/modules/conn/conn_cli.py ready %i
+ExecStart=/usr/bin/python3 -I %h/modules/conn/conn_cli.py run %i
+Restart=always
+RestartSec=30
+MemoryMax=300M
+CPUQuota=25%
+Nice=15
+
+[Install]
+WantedBy=default.target

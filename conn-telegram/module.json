@@ -1,0 +1,1 @@
+{"name": "conn-telegram", "description": "Talk to the hive from Telegram: a bot of the person's, private chats only, by long poll with no port.", "kind": "chat", "conn": true}

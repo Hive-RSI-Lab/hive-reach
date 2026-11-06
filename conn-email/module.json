@@ -1,0 +1,1 @@
+{"name": "conn-email", "description": "Talk to the hive by email through a dedicated mailbox of its own: IMAP in, SMTP out, and only mail with an aligned DKIM pass counts.", "kind": "chat", "conn": true}

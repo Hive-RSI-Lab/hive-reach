@@ -1,0 +1,1 @@
+{"name": "conn-mattermost", "description": "Talk to the hive from Mattermost direct messages, through a bot of the person's on a server that already exists.", "kind": "chat", "conn": true}

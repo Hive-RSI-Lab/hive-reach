@@ -1,0 +1,74 @@
+"""python3 -I test_hook.py"""
+import hashlib, hmac, http.server, json, sys, tempfile, threading, unittest
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import hook as H
+
+
+class Fake(http.server.BaseHTTPRequestHandler):
+    got = []
+    def log_message(self, *a): pass
+    def do_POST(self):
+        if self.path == "/redir":
+            self.send_response(302); self.send_header("Location", "/landed"); self.send_header("Content-Length", "0"); self.end_headers(); return
+        Fake.got.append((self.path, self.rfile.read(int(self.headers.get("Content-Length") or 0)), dict(self.headers)))
+        self.send_response(200); self.send_header("Content-Length", "0"); self.end_headers()
+
+
+class T(unittest.TestCase):
+    def setUp(self):
+        self.s = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Fake); Fake.got = []
+        threading.Thread(target=self.s.serve_forever, daemon=True).start()
+        self.url = f"http://127.0.0.1:{self.s.server_port}"
+        self.d = Path(tempfile.mkdtemp(dir=None)); (self.d / "sec").mkdir()
+        self.hp, self.sd = self.d / "hooks.json", self.d / "sec"
+        (self.sd / "tok").write_text("hunter2-very-secret-value\n"); (self.sd / "j").write_text('{"a": "another-long-json-secret"}')
+    def tearDown(self): self.s.shutdown(); self.s.server_close()
+    def add(self, name="x", path="/h", **k): H.add(name, self.url + path, hooks_path=self.hp, **k)
+
+    def test_sends_to_a_listed_hook_only(self):
+        self.add(); H.send("x", "hello", self.hp, self.sd)
+        self.assertEqual(json.loads(Fake.got[0][1])["text"], "hello")
+        with self.assertRaises(SystemExit): H.send("nope", "hello", self.hp, self.sd)
+
+    def test_secret_values_refused(self):
+        self.add()
+        for t in ("see hunter2-very-secret-value ok", "x another-long-json-secret", "key sk-abcdefghijklmnopqrstuv", "-----BEGIN OPENSSH PRIVATE KEY-----"):
+            with self.assertRaises(SystemExit) as e: H.send("x", t, self.hp, self.sd)
+            self.assertNotIn("hunter2", str(e.exception))
+        self.assertEqual(Fake.got, [])
+
+    def test_redirect_not_followed(self):
+        self.add(path="/redir")
+        with self.assertRaises(SystemExit) as e: H.send("x", "hi", self.hp, self.sd)
+        self.assertIn("not followed", str(e.exception)); self.assertEqual(Fake.got, [])
+
+    def test_signature(self):
+        (self.sd / "arm-hook-x").write_text("k3y"); self.add(sign=True); H.send("x", "hi", self.hp, self.sd, now=1000)
+        _, body, hd = Fake.got[0]
+        want = "sha256=" + hmac.new(b"k3y", b"1000." + body, hashlib.sha256).hexdigest()
+        self.assertEqual(hd["X-H2-Signature"], want)
+
+    def test_signing_without_key_refuses(self):
+        self.add(sign=True)
+        with self.assertRaises(SystemExit): H.send("x", "hi", self.hp, self.sd)
+
+    def test_bad_urls(self):
+        for u in ("ftp://a/b", "file:///etc/passwd", "http://u:p@host/x", "nonsense"):
+            with self.assertRaises(SystemExit): H.add("x", u, hooks_path=self.hp)
+
+    def test_agent_needs_the_persons_post(self):
+        b = self.d / "board.jsonl"; u = self.url + "/h"
+        b.write_text(json.dumps({"id": "p1", "from": "person", "text": "add hook " + u}) + "\n" + json.dumps({"id": "p2", "from": "a1234", "text": u}) + "\n")
+        for post in (None, "p2", "zz"):
+            with self.assertRaises(SystemExit): H.add("x", u, post=post, hooks_path=self.hp, board=b, agent=True)
+        H.add("x", u, post="p1", hooks_path=self.hp, board=b, agent=True); self.assertIn("x", H.load(self.hp))
+        with self.assertRaises(SystemExit): H.add("y", u + "2", post="p1", hooks_path=self.hp, board=b, agent=True)
+
+    def test_unreachable_error_hides_the_address(self):
+        H.save({"x": {"url": "http://127.0.0.1:1/tok-abc123"}}, self.hp)
+        with self.assertRaises(SystemExit) as e: H.send("x", "hi", self.hp, self.sd)
+        self.assertNotIn("abc123", str(e.exception))
+
+
+if __name__ == "__main__": unittest.main()

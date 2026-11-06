@@ -1,0 +1,1 @@
+{"name": "conn-sms", "description": "Text the person's own phone through Telnyx, send only and switched off until they turn it on.", "kind": "push", "conn": true}

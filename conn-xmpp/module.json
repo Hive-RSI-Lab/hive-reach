@@ -1,0 +1,1 @@
+{"name": "conn-xmpp", "description": "Talk to the hive over XMPP one-to-one chats, with an account of the person's on a server that already exists.", "kind": "chat", "conn": true, "python": ["slixmpp==1.17.0"]}

@@ -1,0 +1,1 @@
+{"name": "conn-webpush", "description": "Web Push to the person's browser or phone with the dashboard closed. Contentless. Off until `conn on webpush`.", "kind": "push", "conn": true, "python": ["cryptography"]}

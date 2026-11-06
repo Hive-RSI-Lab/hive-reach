@@ -1,0 +1,10 @@
+[Unit]
+Description=H2 reminders: post what is due (one pass, no port)
+
+[Service]
+Type=oneshot
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/python3 -I %h/modules/arm-remind/remind.py tick
+MemoryMax=200M
+CPUQuota=25%
+Nice=15

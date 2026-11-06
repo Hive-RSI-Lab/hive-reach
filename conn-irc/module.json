@@ -1,0 +1,1 @@
+{"name": "conn-irc", "description": "Talk to the hive over IRC private messages, on a TLS connection, only from people logged in to a network account.", "kind": "chat", "conn": true}

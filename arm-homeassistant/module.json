@@ -1,0 +1,1 @@
+{"name": "arm-homeassistant", "description": "Home Assistant over its REST API: read states, and call only the services the person has listed. Read-only until they write the list; locks, alarms and garage doors need a separate explicit key.", "kind": "arm", "bin": {"ha": "ha.py"}}

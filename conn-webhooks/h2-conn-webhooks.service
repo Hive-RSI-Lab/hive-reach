@@ -1,0 +1,14 @@
+[Unit]
+Description=H2 webhook receiver (loopback only, not published anywhere)
+
+[Service]
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/python3 -I %h/modules/conn-webhooks/webhook_receiver.py
+Restart=on-failure
+RestartSec=30
+MemoryMax=300M
+CPUQuota=25%
+Nice=15
+
+[Install]
+WantedBy=default.target

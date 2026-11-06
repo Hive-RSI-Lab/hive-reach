@@ -1,0 +1,11 @@
+[Unit]
+Description=H2 watch: check the feeds and pages that are due (one pass, outward only)
+
+[Service]
+Type=oneshot
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/python3 -I %h/modules/arm-watch/watch.py tick
+MemoryMax=300M
+CPUQuota=25%
+Nice=15
+TimeoutStartSec=300

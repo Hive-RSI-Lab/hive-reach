@@ -1,0 +1,1 @@
+{"name": "conn-rocketchat", "description": "Talk to the hive from Rocket.Chat direct messages, polling a server that already exists with a bot or user token of the person's.", "kind": "chat", "conn": true}
