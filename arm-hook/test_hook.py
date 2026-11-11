@@ -64,6 +64,19 @@ class T(unittest.TestCase):
             with self.assertRaises(SystemExit): H.add("x", u, post=post, hooks_path=self.hp, board=b, agent=True)
         H.add("x", u, post="p1", hooks_path=self.hp, board=b, agent=True); self.assertIn("x", H.load(self.hp))
         with self.assertRaises(SystemExit): H.add("y", u + "2", post="p1", hooks_path=self.hp, board=b, agent=True)
+        # a URL that is only the start of the person's is another place (…/h → host with a shorter name, or a parent path)
+        for part in (u[:-1], u[:-2], u.rsplit(":", 1)[0]):
+            with self.assertRaises(SystemExit): H.add("z", part, post="p1", hooks_path=self.hp, board=b, agent=True)
+
+    def test_post_urls_are_whole(self):
+        self.assertEqual(H.post_urls("use https://hooks.example.com/x, and (http://a.b/c?d=1)."), {"https://hooks.example.com/x", "http://a.b/c?d=1)"})
+        self.assertNotIn("https://hooks.example.co", H.post_urls("https://hooks.example.com/x"))
+
+    def test_naming_yourself_person_is_still_an_agent(self):
+        import os, subprocess
+        r = subprocess.run([sys.executable, "-I", str(Path(H.__file__)), "add", "x", "https://example.com/h"], env={"PATH": os.environ["PATH"], "HOME": str(self.d), "H2_NAME": "person"}, capture_output=True, text=True)
+        self.assertNotEqual(r.returncode, 0); self.assertIn("only the person", r.stderr)
+        self.assertFalse((self.d / ".config/h2/hooks.json").exists())
 
     def test_unreachable_error_hides_the_address(self):
         H.save({"x": {"url": "http://127.0.0.1:1/tok-abc123"}}, self.hp)

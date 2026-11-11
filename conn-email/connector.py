@@ -2,7 +2,7 @@
 A From address is forgeable, so identity is two things: the sender is on the allow-list, and the mailbox's own server vouches for an aligned
 DKIM pass in the Authentication-Results header it added. Mail that fails is dropped: no reply, no pairing code, nothing posted.
 The parsing functions are pure (raw bytes in), and the IMAP/SMTP clients are injected, so tests need no sockets."""
-import email, email.policy, email.utils, html.parser, imaplib, json, re, smtplib, sys, threading, time
+import email, email.policy, email.utils, html.parser, imaplib, json, re, smtplib, ssl, sys, threading, time
 from email.message import EmailMessage
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "conn"))
@@ -160,6 +160,12 @@ def uid_from_fetch(data):
     return None
 
 
+def tls():
+    """A context that checks the server's certificate and name. Without one, imaplib and smtplib don't verify, and anyone on the
+    path would be handed the app password at login."""
+    return ssl.create_default_context()
+
+
 # ---- the connector ----------------------------------------------------------------------------------
 class Email(C.Connector):
     name = "email"; label = "email"; size = 8000
@@ -169,15 +175,15 @@ class Email(C.Connector):
         # allow_from goes through the bridge's allow-list (cfg["allow"]), as lowercased bare addresses
         allow = {bare(a) or str(a).strip().lower() for a in (self.cfg.get("allow_from") or []) + (self.cfg.get("allow") or [])}
         self.cfg["allow"] = sorted(allow)
-        self.imap_factory = imap or (lambda: imaplib.IMAP4_SSL(self.cfg["imap_host"], int(self.cfg.get("imap_port", 993))))
+        self.imap_factory = imap or (lambda: imaplib.IMAP4_SSL(self.cfg["imap_host"], int(self.cfg.get("imap_port", 993)), ssl_context=tls()))
         self.smtp_factory = smtp or self._smtp
         self.sleep, self.lock = sleep, threading.Lock()
         self.state_path = C.DATA / "email" / "state.json"
 
     def _smtp(self):
         port = int(self.cfg.get("smtp_port", 465))
-        if port == 465: return smtplib.SMTP_SSL(self.cfg["smtp_host"], port, timeout=60)
-        s = smtplib.SMTP(self.cfg["smtp_host"], port, timeout=60); s.starttls(); return s
+        if port == 465: return smtplib.SMTP_SSL(self.cfg["smtp_host"], port, timeout=60, context=tls())
+        s = smtplib.SMTP(self.cfg["smtp_host"], port, timeout=60); s.starttls(context=tls()); return s
 
     def ready(self):
         need = [k for k in ("imap_host", "smtp_host", "address", "auth_server") if not self.cfg.get(k)]

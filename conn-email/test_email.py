@@ -201,4 +201,19 @@ class Flow(unittest.TestCase):
         self.assertIsNone(E.inspect(mail(auth="; dkim=pass header.d=example.com"), "", "bot@box.example")[0])
 
 
+
+class Tls(unittest.TestCase):
+    """The app password goes only to a server whose certificate and name check out."""
+    def test_every_login_path_verifies_the_server(self):
+        import ssl
+        from unittest import mock
+        ctx = E.tls(); self.assertEqual(ctx.verify_mode, ssl.CERT_REQUIRED); self.assertTrue(ctx.check_hostname)
+        C.DATA = Path(tempfile.mkdtemp()); cfg = {"imap_host": "i", "smtp_host": "s", "address": "bot", "auth_server": "x"}
+        def verified(c): return isinstance(c, ssl.SSLContext) and c.verify_mode == ssl.CERT_REQUIRED and c.check_hostname
+        with mock.patch.object(E.imaplib, "IMAP4_SSL") as im, mock.patch.object(E.smtplib, "SMTP_SSL") as ss, mock.patch.object(E.smtplib, "SMTP") as sm:
+            e = E.Email(dict(cfg), "PW"); e.imap_factory(); e._smtp()
+            self.assertTrue(verified(im.call_args.kwargs["ssl_context"])); self.assertTrue(verified(ss.call_args.kwargs["context"]))
+            e = E.Email(dict(cfg, smtp_port=587), "PW"); e._smtp()
+            self.assertTrue(verified(sm.return_value.starttls.call_args.kwargs["context"]))
+
 if __name__ == "__main__": unittest.main()

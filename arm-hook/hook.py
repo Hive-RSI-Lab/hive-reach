@@ -55,14 +55,20 @@ def check_url(url):
 
 
 def person_post(pid, url, board=None):
-    """An agent may add a hook only when the person's own post says so: it has to be from person and contain this URL."""
+    """An agent may add a hook only when the person's own post says so: it has to be from person and hold exactly this URL."""
     try: lines = Path(board or C.BOARD).read_text().splitlines()
     except OSError: return False
     for l in reversed(lines):
         try: p = json.loads(l)
         except ValueError: continue
-        if p.get("id") == pid: return p.get("from") == "person" and url in p.get("text", "")
+        if p.get("id") == pid: return p.get("from") == "person" and url in post_urls(p.get("text", ""))
     return False
+
+
+def post_urls(text):
+    """The addresses written in a post, each whole. A match has to be exact: a URL that is only the start of the person's
+    (https://hooks.example.co inside https://hooks.example.com/x) is a different place."""
+    return {u.rstrip(".,;:!?") for u in re.findall(r"https?://[^\s<>\"'`]+", text)}
 
 
 def add(name, url, sign=False, post=None, hooks_path=None, board=None, agent=None):
@@ -103,7 +109,7 @@ def main(argv):
     sign = "--sign" in a; a = [x for x in a if x != "--sign"]
     post = None
     if "--post" in a: i = a.index("--post"); post = a[i + 1] if i + 1 < len(a) else None; del a[i:i + 2]
-    agent = os.environ.get("H2_NAME", "") not in ("", "person")
+    agent = bool(os.environ.get("H2_NAME"))  # every agent run has a name; calling yourself "person" doesn't make you the person
     if cmd == "add" and len(a) == 2: add(a[0], a[1], sign, post, agent=agent); print(f"added {a[0]}")
     elif cmd == "send" and len(a) >= 2:
         send(a[0], sys.stdin.read() if a[1:] == ["-"] else " ".join(a[1:])); print("sent")
