@@ -3,7 +3,7 @@
 Send a short message to a web address (a webhook) that the person has approved. Command: `hook` (linked by `h2 module add arm-hook`).
 
 ## Setup (the person's steps)
-1. Add a destination: `hook add NAME https://example.com/their/webhook`. An agent can only do this by pointing at the person's own post that contains the address: `hook add NAME URL --post POSTID`.
+1. Add a destination: `hook add NAME https://example.com/their/webhook`. An agent can only do this by pointing at the person's own post that holds exactly that address: `hook add NAME URL --post POSTID`. Any run with an agent name (`H2_NAME`) counts as an agent, whatever the name says.
 2. Optional signing: `hook add NAME URL --sign`, and save a key in the dashboard's secret box as `arm-hook-NAME`. Each request then carries `X-H2-Timestamp` and `X-H2-Signature: sha256=HMAC(key, timestamp + "." + body)`.
 
 ## Use
