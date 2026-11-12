@@ -65,16 +65,22 @@ def person_post(pid, url, board=None):
     return False
 
 
+AMBIGUOUS = ".,;:!?)]}'\""
+
+
 def post_urls(text):
-    """The addresses written in a post, each whole. A match has to be exact: a URL that is only the start of the person's
-    (https://hooks.example.co inside https://hooks.example.com/x) is a different place."""
-    return {u.rstrip(".,;:!?") for u in re.findall(r"https?://[^\s<>\"'`]+", text)}
+    """The addresses a post approves, each exactly as written; nothing is trimmed, since a URL with its last character taken
+    off is another place. One counts when it is set off with backticks, <angle brackets> or a Markdown link's (parentheses),
+    or stands alone between spaces and doesn't end in punctuation that could belong to the sentence instead."""
+    marked = re.findall(r"`([^`\s]+)`", text) + re.findall(r"<([^<>\s]+)>", text) + re.findall(r"\]\(([^()\s]+)\)", text)
+    bare = [t for t in text.split() if t[-1] not in AMBIGUOUS]
+    return {u for u in marked + bare if re.match(r"https?://", u)}
 
 
 def add(name, url, sign=False, post=None, hooks_path=None, board=None, agent=None):
     if not NAME.match(name): raise SystemExit("hook: the name is lowercase letters, digits, - or _")
     check_url(url)
-    if agent and not person_post(post, url, board): raise SystemExit("hook: only the person sets a destination. Use --post ID of their post that holds this address.")
+    if agent and not person_post(post, url, board): raise SystemExit("hook: only the person sets a destination. Use --post ID of their post that holds exactly this address, in backticks or alone between spaces.")
     hooks = load(hooks_path); hooks[name] = {"url": url, "sign": bool(sign)}; save(hooks, hooks_path)
 
 
