@@ -68,9 +68,22 @@ class T(unittest.TestCase):
         for part in (u[:-1], u[:-2], u.rsplit(":", 1)[0]):
             with self.assertRaises(SystemExit): H.add("z", part, post="p1", hooks_path=self.hp, board=b, agent=True)
 
-    def test_post_urls_are_whole(self):
-        self.assertEqual(H.post_urls("use https://hooks.example.com/x, and (http://a.b/c?d=1)."), {"https://hooks.example.com/x", "http://a.b/c?d=1)"})
-        self.assertNotIn("https://hooks.example.co", H.post_urls("https://hooks.example.com/x"))
+    def test_post_urls_are_exact(self):
+        P = H.post_urls
+        self.assertEqual(P("use `https://h.example.com/team!` or <https://h.example.com/a?b=1.> or [it](https://h.example.com/c) or https://h.example.com/d ok"),
+                         {"https://h.example.com/team!", "https://h.example.com/a?b=1.", "https://h.example.com/c", "https://h.example.com/d"})
+        # a bare address that ends in sentence punctuation approves nothing: neither the trimmed nor the untrimmed form
+        for t in ("see https://h.example.com/x.", "is it https://h.example.com/x?", "(https://h.example.com/x)", "https://h.example.com/x, then"):
+            self.assertEqual(P(t), set(), t)
+        self.assertEqual(P("`not a url` <b> https://hooks.example.com/x"), {"https://hooks.example.com/x"})
+
+    def test_trailing_punctuation_is_part_of_the_address(self):
+        b = self.d / "board.jsonl"; u = self.url + "/team!"
+        b.write_text(json.dumps({"id": "p1", "from": "person", "text": f"hook to `{u}` please. Also {self.url}/q?k=v. Thanks"}) + "\n")
+        for other in (u[:-1], self.url + "/q?k=v", self.url + "/q?k=v."):
+            with self.assertRaises(SystemExit): H.add("s", other, post="p1", hooks_path=self.hp, board=b, agent=True)
+        self.assertNotIn("s", H.load(self.hp))
+        H.add("t", u, post="p1", hooks_path=self.hp, board=b, agent=True); self.assertEqual(H.load(self.hp)["t"]["url"], u)
 
     def test_naming_yourself_person_is_still_an_agent(self):
         import os, subprocess
