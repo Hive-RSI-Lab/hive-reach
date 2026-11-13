@@ -31,11 +31,13 @@ class T(unittest.TestCase):
 
     def test_private_and_odd_addresses_refused(self):
         for u in ("http://127.0.0.1/", "http://localhost/", "http://10.1.2.3/", "http://192.168.0.1/", "http://169.254.169.254/", "http://[::1]/", "http://[::ffff:127.0.0.1]/", "http://0.0.0.0/",
+                  "http://[::127.0.0.1]/", "http://[::7f00:1]/", "http://[64:ff9b::7f00:1]/", "http://[64:ff9b::a9fe:a9fe]/", "http://[2002:7f00:1::]/", "http://[2002:c0a8:101::1]/",
                   "file:///etc/passwd", "ftp://example.com/", "http://user:pw@example.com/"):
             with self.assertRaises(SystemExit, msg=u): W.check_url(u)
         res = lambda h, p: ["93.184.216.34", "10.0.0.5"]   # a name with one private answer is refused
         with self.assertRaises(SystemExit): W.check_url("http://sneaky.example/", resolver=res)
         W.check_url("http://ok.example/", resolver=lambda h, p: ["93.184.216.34"])
+        for ok in ("93.184.216.34", "2606:2800:220:1:248:1893:25c8:1946", "64:ff9b::5db8:d822"): self.assertTrue(W.public_only(ok), ok)
 
     def test_redirect_to_private_is_refused(self):
         res = lambda h, p: ["127.0.0.1"] if h == "127.0.0.1" else ["10.0.0.9"]

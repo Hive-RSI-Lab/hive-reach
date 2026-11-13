@@ -13,6 +13,7 @@ class Gotify(C.Connector):
 
     def ready(self):
         if not self.cfg.get("server"): return "no server: `conn set gotify server https://gotify.example.com`"
+        if why := C.plain_refused(self.cfg["server"], self.cfg): return why
         return "" if self.secret else "no app token: save it as conn-gotify with the dashboard's lock"
 
     def setup(self):

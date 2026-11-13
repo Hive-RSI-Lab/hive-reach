@@ -147,9 +147,9 @@ class T1(unittest.TestCase):
         self.assertEqual([m.text for m in got], ["you"])
 
     def test_ready_needs_server_and_token(self):
-        self.assertEqual(M.Matrix({"server": "http://x"}, "t").ready(), "")
+        self.assertEqual(M.Matrix({"server": "https://x"}, "t").ready(), ""); self.assertIn("https", M.Matrix({"server": "http://x"}, "t").ready()); self.assertEqual(M.Matrix({"server": "http://x", "allow_http": True}, "t").ready(), "")
         self.assertIn("homeserver", M.Matrix({}, "t").ready())
-        self.assertIn("token", M.Matrix({"server": "http://x"}, "").ready())
+        self.assertIn("token", M.Matrix({"server": "https://x"}, "").ready())
 
 
 class Whole(unittest.TestCase):

@@ -18,6 +18,7 @@ class Nextcloud(C.Connector):
 
     def ready(self):
         if not self.base or not self.cfg.get("user"): return "no server or user: `conn set nextcloud server https://cloud.example.com` and `conn set nextcloud user botname`"
+        if why := C.plain_refused(self.base, self.cfg): return why
         return "" if self.secret else "no app password: save it as conn-nextcloud with the dashboard's lock"
 
     def call(self, method, path, params=None, body=None):

@@ -65,6 +65,21 @@ class T(unittest.TestCase):
             self.assertEqual(run("run", u, env=self.env).returncode, 2)
         self.assertFalse(self.log.exists())
 
+    def test_local_addresses_refused(self):
+        bad = ["http://127.0.0.1/", "http://localhost:8123/", "http://printer.local/", "http://router.lan/", "http://nas/", "http://10.0.0.1/", "http://192.168.1.1/",
+               "http://172.20.0.1/", "http://169.254.169.254/", "http://100.64.0.1/", "http://0.0.0.0/", "http://2130706433/", "http://0x7f.1/", "http://[::1]/",
+               "http://[::ffff:127.0.0.1]/", "http://[::ffff:a00:1]/", "http://[fe80::1]/", "http://[fd00::1]/", "http://[64:ff9b::7f00:1]/", "http://[2002:c0a8:101::]/",
+               "http://[::127.0.0.1]/", "http://LOCALHOST./", "http://a.home.arpa/"]
+        good = ["https://example.com/", "http://93.184.216.34/", "http://[2606:2800:220:1::1]/", "http://[64:ff9b::5db8:d822]/"]
+        code = f"for (const u of {json.dumps(bad)}) {{ try {{ g.checkUrl(u); console.log('LET ' + u); }} catch {{}} }}" \
+               f"for (const u of {json.dumps(good)}) {{ try {{ g.checkUrl(u); }} catch (e) {{ console.log('REFUSED ' + u); }} }}" \
+               "const fake = async () => [{address: '93.184.216.34'}, {address: '10.0.0.5'}];" \
+               "await g.checkHost('https://sneaky.example/', fake).then(() => console.log('LET sneaky'), () => {});" \
+               "await g.checkHost('https://ok.example/', async () => [{address: '93.184.216.34'}]);" \
+               "await g.checkHost('https://nodns.example/', async () => { throw Error('ENOTFOUND'); });"
+        r = node(code); self.assertEqual(r.returncode, 0, r.stderr); self.assertEqual(r.stdout.strip(), "")
+        self.assertEqual(run("run", "http://127.0.0.1:8123/", env=self.env).returncode, 2); self.assertFalse(self.log.exists())
+
     def test_steps_validated(self):
         for bad in ('[{"op":"eval","js":"1"}]', '[{"op":"click"}]', '{"op":"text"}'):
             r = run("run", "https://example.com/", "--steps", "-", env=self.env, inp=bad)

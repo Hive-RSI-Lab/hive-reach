@@ -18,6 +18,7 @@ class RocketChat(C.Connector):
 
     def ready(self):
         if not self.base: return "no server: `conn set rocketchat server https://chat.example.com`"
+        if why := C.plain_refused(self.base, self.cfg): return why
         if not (isinstance(self.creds, dict) and self.creds.get("user_id") and self.creds.get("token")):
             return 'no login: save {"user_id": "...", "token": "..."} as conn-rocketchat with the dashboard\'s lock'
         return ""

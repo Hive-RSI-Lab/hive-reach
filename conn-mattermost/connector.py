@@ -68,7 +68,7 @@ class Mattermost(C.Connector):
 
     def ready(self):
         if not self.base: return "no server: `conn set mattermost server https://chat.example.com`"
-        return super().ready()
+        return C.plain_refused(self.base, self.cfg) or super().ready()
 
     def call(self, method, path, body=None):
         return C.http(method, f"{self.base}/api/v4{path}", body=body, headers={"Authorization": "Bearer " + self.secret}, timeout=30)

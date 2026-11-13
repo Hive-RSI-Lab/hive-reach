@@ -1,5 +1,6 @@
 // Guards for arm-browser. Pure functions, so tests need no Chrome.
 import { lstatSync, readdirSync, realpathSync } from "node:fs";
+import { isIP } from "node:net";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 
@@ -17,10 +18,48 @@ export function checkProfile(dir, { tmp = tmpdir(), uid = process.getuid() } = {
   return real;
 }
 
+// Is this address on the machine or the local network (not the public internet)? v6 forms that carry a v4 inside are judged by it.
+function v4Local([a, b]) {
+  return a === 0 || a === 10 || a === 127 || a >= 224 || (a === 100 && b >= 64 && b < 128) || (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b < 32) || (a === 192 && b === 168) || (a === 198 && (b === 18 || b === 19)) || (a === 192 && b === 0);
+}
+function v6Groups(s) {
+  s = s.toLowerCase().replace(/%.*$/, "");
+  const m = s.match(/^(.*:)(\d+\.\d+\.\d+\.\d+)$/);
+  if (m) { const o = m[2].split(".").map(Number); s = m[1] + ((o[0] << 8) | o[1]).toString(16) + ":" + ((o[2] << 8) | o[3]).toString(16); }
+  const [head, tail] = s.includes("::") ? s.split("::") : [s, null];
+  const h = head ? head.split(":") : [], t = tail ? tail.split(":") : [];
+  return [...h, ...Array(tail === null ? 0 : 8 - h.length - t.length).fill("0"), ...t].map(x => parseInt(x, 16));
+}
+export function localAddress(ip) {
+  const v = isIP(ip);
+  if (v === 4) return v4Local(ip.split(".").map(Number));
+  if (v !== 6) return false;
+  const g = v6Groups(ip), v4 = (hi, lo) => [hi >> 8, hi & 255, lo >> 8, lo & 255];
+  const zero = n => g.slice(0, n).every(x => x === 0);
+  if (zero(5) && g[5] === 0xffff) return v4Local(v4(g[6], g[7]));                 // ::ffff:a.b.c.d
+  if (zero(6)) return g[6] === 0 && g[7] <= 1 ? true : v4Local(v4(g[6], g[7]));     // :: and ::1, and the old ::a.b.c.d
+  if (g[0] === 0x64 && g[1] === 0xff9b && g.slice(2, 6).every(x => x === 0)) return v4Local(v4(g[6], g[7]));  // NAT64
+  if (g[0] === 0x2002) return v4Local(v4(g[1], g[2]));                               // 6to4
+  return (g[0] & 0xfe00) === 0xfc00 || (g[0] & 0xffc0) === 0xfe80 || (g[0] & 0xffc0) === 0xfec0 || (g[0] & 0xff00) === 0xff00;
+}
+
+const LOCAL_NAME = /(^|\.)(localhost|local|internal|lan|home\.arpa|intranet|corp)$/;
 export function checkUrl(u) {
   let p; try { p = new URL(u); } catch { throw Error("refused: not a URL"); }
   if (p.protocol !== "http:" && p.protocol !== "https:") throw Error("refused: http(s) only");
+  const host = p.hostname.replace(/^\[|\]$/g, "").replace(/\.$/, "").toLowerCase();
+  if (!host.includes(".") && !isIP(host) || LOCAL_NAME.test(host) || localAddress(host))
+    throw Error("refused: that is a local or private address; the browser arm is for public web pages only");
   return p.href;
+}
+
+// The name must not lead to a local address either. A lookup that fails is left to Chrome, which will fail the same way.
+export async function checkHost(href, lookup) {
+  const host = new URL(href).hostname.replace(/^\[|\]$/g, "");
+  if (isIP(host)) return;
+  let all; try { all = await lookup(host, { all: true }); } catch { return; }
+  if (all.some(a => localAddress(a.address))) throw Error("refused: that name leads to a local or private address");
 }
 
 export const MENTION = /(?<![\w.])@([a-z0-9][a-z0-9_-]*)/gi;

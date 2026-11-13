@@ -51,6 +51,7 @@ def api(cfg, method, path, body=None, secret_path=None, call=C.http):
     if not tok: fail("no token yet. Save a long-lived access token in the dashboard's secret box as conn-homeassistant.")
     base = (cfg.get("url") or "").rstrip("/")
     if urllib.parse.urlsplit(base).scheme not in ("http", "https"): fail("set \"url\" (http:// or https://) in ~/.config/h2/homeassistant.json")
+    if why := C.plain_refused(base, cfg): fail(why + " in ~/.config/h2/homeassistant.json")
     try: return call(method, base + path, body, {"Authorization": "Bearer " + tok}, 20)
     except (RuntimeError, OSError) as e: fail("Home Assistant said no or didn't answer (" + str(e).replace(tok, "***")[:80] + ")")
 

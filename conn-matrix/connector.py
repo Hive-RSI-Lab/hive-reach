@@ -23,7 +23,8 @@ class Matrix(C.Connector):
         self.me = self.cfg.get("user") or ""
 
     def ready(self):
-        return "no homeserver: set \"server\" in ~/.config/h2/conn/matrix.json" if not self.server else super().ready()
+        if not self.server: return "no homeserver: set \"server\" in ~/.config/h2/conn/matrix.json"
+        return C.plain_refused(self.server, self.cfg) or super().ready()
 
     def state_file(self, n): return C.DATA / self.name / n
 

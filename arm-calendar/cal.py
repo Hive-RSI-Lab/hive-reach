@@ -164,6 +164,7 @@ def source(path=None, secret_path=None):
     cfg = json.loads(raw) if raw.startswith("{") else {"url": raw}
     url = cfg.get("url", "").replace("webcal://", "https://", 1)
     if urllib.parse.urlsplit(url).scheme not in ("http", "https"): fail("the calendar link must be http(s) or webcal")
+    if why := C.plain_refused(url, cfg): fail("the calendar link is a secret: " + why + " in the conn-calendar secret (as JSON with \"url\")")
     h = {"Accept": "text/calendar"}
     if cfg.get("user"): h["Authorization"] = "Basic " + base64.b64encode(f"{cfg['user']}:{cfg.get('password', '')}".encode()).decode()
     try: data = C.http("GET", url, headers=h, timeout=30, raw=True)
