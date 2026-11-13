@@ -1,5 +1,5 @@
 """The rules every connector shares: python3 -I test_conn.py"""
-import json, os, subprocess, sys, tempfile, unittest
+import http.server, json, os, subprocess, sys, tempfile, threading, unittest
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import conn as C
@@ -11,10 +11,46 @@ class PersonOnly(unittest.TestCase):
         return subprocess.run([sys.executable, "-I", str(Path(__file__).parent / "conn_cli.py"), *args], capture_output=True, text=True, env=e)
 
     def test_an_agent_cant_say_who_may_talk(self):
-        for args in (("pair", "ntfy", "ABCD"), ("allow", "ntfy", "1"), ("set", "sms", "person_number", "+1"), ("set", "email", "allow_from=[]"), ("set", "whatsapp", "self", "1"), ("set", "sms", "enabled=true")):
+        for args in (("pair", "ntfy", "ABCD"), ("allow", "ntfy", "1"), ("set", "sms", "person_number", "+1"), ("set", "email", "allow_from=[]"), ("set", "whatsapp", "self", "1"), ("set", "sms", "enabled=true"), ("set", "gotify", "allow_http", "true")):
             r = self.cli(*args, H2_NAME="a1"); self.assertNotEqual(r.returncode, 0, args); self.assertIn("only the person", r.stderr)
         self.assertEqual(self.cli("set", "ntfy", "priority", "2", H2_NAME="a1").returncode, 0)
         self.assertEqual(self.cli("set", "sms", "person_number", "+1").returncode, 0)
+
+
+class LoginStaysHome(unittest.TestCase):
+    """A redirect to another host or port keeps the request but not its login."""
+    def serve(self, handler):
+        s = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler); threading.Thread(target=s.serve_forever, daemon=True).start()
+        self.addCleanup(s.server_close); self.addCleanup(s.shutdown); return s
+
+    def test_cross_origin_redirect_drops_login_headers(self):
+        seen = []
+        class Away(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                seen.append(dict(self.headers)); self.send_response(200); self.end_headers(); self.wfile.write(b"{}")
+            def log_message(self, *a): pass
+        away = self.serve(Away)
+        class Home(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                to = f"http://127.0.0.1:{away.server_port}/x" if self.path == "/off" else "/same"
+                if self.path == "/same": seen.append(dict(self.headers)); self.send_response(200); self.end_headers(); self.wfile.write(b"{}"); return
+                self.send_response(302); self.send_header("Location", to); self.end_headers()
+            def log_message(self, *a): pass
+        home = self.serve(Home)
+        login = {"Authorization": "Bearer sekrit", "X-Gotify-Key": "k", "X-Auth-Token": "t", "X-User-Id": "u", "Accept": "text/calendar"}
+        C.http("GET", f"http://127.0.0.1:{home.server_port}/off", headers=login)
+        self.assertEqual(seen[-1].get("Accept"), "text/calendar")
+        for h in ("Authorization", "X-Gotify-Key", "X-Auth-Token", "X-User-Id"): self.assertNotIn(h, seen[-1])
+        C.http("GET", f"http://127.0.0.1:{home.server_port}/here", headers=login)  # same host and port: the login goes along
+        self.assertEqual(seen[-1].get("Authorization"), "Bearer sekrit")
+
+    def test_plain_http_only_on_loopback_or_when_allowed(self):
+        for ok in ("https://chat.example.com", "wss://chat.example.com/ws", "http://127.0.0.1:8080", "http://localhost", "http://[::1]:80", "ws://a.localhost"):
+            self.assertEqual(C.plain_refused(ok), "", ok)
+        for bad in ("http://chat.example.com", "http://192.168.1.5:8123", "ws://chat.lan", "chat.example.com", "http://127.0.0.1.evil.com"):
+            self.assertIn("https://", C.plain_refused(bad), bad)
+        self.assertEqual(C.plain_refused("http://192.168.1.5", {"allow_http": True}), "")
+        self.assertIn("https://", C.plain_refused("http://192.168.1.5", {"allow_http": "yes"}))
 
 
 class DoubleAt(unittest.TestCase):

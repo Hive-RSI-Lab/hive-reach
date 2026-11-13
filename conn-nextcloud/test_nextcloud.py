@@ -51,7 +51,7 @@ class T(unittest.TestCase):
         self.c.send("one", "yo"); self.assertEqual(Fake.sent, [("one", {"message": "yo"})])
 
     def test_ready(self):
-        self.assertIn("server", N.Nextcloud({}, "p").ready()); self.assertIn("app password", N.Nextcloud({"server": "s", "user": "u"}, "").ready())
+        self.assertIn("server", N.Nextcloud({}, "p").ready()); self.assertIn("app password", N.Nextcloud({"server": "https://s", "user": "u"}, "").ready()); self.assertIn("https", N.Nextcloud({"server": "http://s", "user": "u"}, "p").ready())
         self.assertEqual(self.c.ready(), "")
 
 

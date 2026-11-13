@@ -11,10 +11,12 @@ Reads Home Assistant state and, only where the person has said so, calls service
 1. In Home Assistant, make a long-lived access token (profile page). Put it in the secret box as `conn-homeassistant`.
 2. Write `~/.config/h2/homeassistant.json`:
 
-        {"url": "http://homeassistant.local:8123",
+        {"url": "https://homeassistant.local:8123",
          "allow": [{"entity": "light.desk", "services": ["light.turn_on", "light.turn_off"]},
                    {"entity": "switch.*", "services": ["switch.toggle"]}],
          "dangerous": []}
+
+   The token goes only to an `https://` address (or one on this machine). If Home Assistant is only plain `http://` on your own network and you accept that the token crosses it unencrypted, add `"allow_http": true`.
 
 ## Safety
 

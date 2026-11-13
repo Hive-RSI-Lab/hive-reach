@@ -101,7 +101,7 @@ def cmd_log(a):
     print(subprocess.run(["journalctl", "--user", "-u", UNIT.format(a.name), "-n", str(a.n), "--no-pager", "-o", "cat"], capture_output=True, text=True).stdout)
 
 
-PERSON_KEYS = {"allow_from", "self", "person_number", "enabled"}  # who may talk, who is "the person", whether texting is on
+PERSON_KEYS = {"allow_from", "self", "person_number", "enabled", "allow_http"}  # who may talk, who is "the person", whether texting is on, a login in the clear
 
 
 def person_only(what):

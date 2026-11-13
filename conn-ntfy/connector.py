@@ -13,7 +13,9 @@ class Ntfy(C.Connector):
     name = "ntfy"; label = "ntfy"; can_receive = False
 
     def ready(self):
-        return "" if self.cfg.get("topic") else "no topic yet: `conn on ntfy` makes one"
+        if not self.cfg.get("topic"): return "no topic yet: `conn on ntfy` makes one"
+        server = self.cfg.get("server", C_SERVER)
+        return C.plain_refused(server, self.cfg) if self.secret and own(server) else ""
 
     def setup(self):
         changes = {}
@@ -26,11 +28,18 @@ class Ntfy(C.Connector):
         """The words are dropped here on purpose, not by policy above: nothing an agent writes reaches a public server."""
         server = self.cfg.get("server", C_SERVER).rstrip("/")
         h = {"Title": "H2", "Click": self.cfg.get("click", CLICK), "Priority": str(self.cfg.get("priority", 3))}
-        # A server of the person's own, with a token, may carry the words
-        if self.secret and server != C_SERVER: h["Authorization"] = "Bearer " + self.secret
-        body = text if self.secret and server != C_SERVER else LINE
+        # A server of the person's own, with a token, may carry the words; a token never goes in the clear
+        mine = bool(self.secret) and own(server) and not C.plain_refused(server, self.cfg)
+        if mine: h["Authorization"] = "Bearer " + self.secret
+        body = text if mine else LINE
         C.http("POST", f"{server}/{self.cfg['topic']}", body=body.encode(), headers=h, timeout=30)
 
 
 C_SERVER = "https://ntfy.sh"
+
+
+def own(server):
+    """Not the public server, however it's written: https://NTFY.sh/, https://ntfy.sh:443 and http://ntfy.sh are all ntfy.sh."""
+    host = C.origin(server)[1].rstrip(".")
+    return C.origin(server)[1:] != C.origin(C_SERVER)[1:] and host != "ntfy.sh" and not host.endswith(".ntfy.sh")
 CONNECTOR = Ntfy

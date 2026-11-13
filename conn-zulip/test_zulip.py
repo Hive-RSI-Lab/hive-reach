@@ -55,7 +55,7 @@ class T(unittest.TestCase):
         self.assertNotIn("KEY", str(e.exception))
 
     def test_ready(self):
-        self.assertIn("server", Z.Zulip({}, "k").ready()); self.assertIn("API key", Z.Zulip({"server": "s", "email": "e"}, "").ready())
+        self.assertIn("server", Z.Zulip({}, "k").ready()); self.assertIn("API key", Z.Zulip({"server": "https://s", "email": "e"}, "").ready()); self.assertIn("https", Z.Zulip({"server": "http://s", "email": "e"}, "k").ready())
         self.assertEqual(self.c.ready(), "")
 
 

@@ -7,7 +7,8 @@
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { checkProfile, checkSteps, checkUrl, label, PREFIX } from "./guard.mjs";
+import { checkHost, checkProfile, checkSteps, checkUrl, label, PREFIX } from "./guard.mjs";
+import { lookup } from "node:dns/promises";
 
 const args = process.argv.slice(2), cmd = args.shift();
 const flag = n => { const i = args.indexOf(n); if (i < 0) return undefined; const v = args[i + 1]; args.splice(i, 2); return v; };
@@ -24,6 +25,7 @@ try {
   const stepsFile = flag("--steps"); maxChars = +(flag("--max") ?? 20000);
   const extra = args.filter(a => a.startsWith("-")); if (extra.length) throw Error(`refused: unknown option ${extra[0]}`);
   url = checkUrl(args[0] ?? "");
+  await checkHost(url, lookup);
   steps = stepsFile ? checkSteps(JSON.parse(readFileSync(stepsFile === "-" ? 0 : stepsFile, "utf8"))) : [];
   if (given !== undefined) dir = checkProfile(given); else { dir = mkdtempSync(join(tmpdir(), PREFIX)); owned = true; }
 } catch (e) { die(e.message); }

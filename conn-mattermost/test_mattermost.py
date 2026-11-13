@@ -69,7 +69,7 @@ class T(unittest.TestCase):
         self.c.send("chan1", "hello"); self.assertEqual(Fake.posts, [{"channel_id": "chan1", "message": "hello"}])
 
     def test_ready(self):
-        self.assertIn("server", M.Mattermost({}, "t").ready()); self.assertIn("token", M.Mattermost({"server": "x"}, "").ready())
+        self.assertIn("server", M.Mattermost({}, "t").ready()); self.assertIn("token", M.Mattermost({"server": "https://x"}, "").ready()); self.assertIn("https", M.Mattermost({"server": "http://chat.lan"}, "t").ready())
         self.assertEqual(self.c.ready(), "")
 
 

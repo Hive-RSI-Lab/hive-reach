@@ -15,6 +15,7 @@ class Zulip(C.Connector):
 
     def ready(self):
         if not self.base or not self.cfg.get("email"): return "no server or bot email: `conn set zulip server https://x.zulipchat.com` and `conn set zulip email bot@x.zulipchat.com`"
+        if why := C.plain_refused(self.base, self.cfg): return why
         return "" if self.secret else "no API key: save it as conn-zulip with the dashboard's lock"
 
     def call(self, method, path, params=None, timeout=30):

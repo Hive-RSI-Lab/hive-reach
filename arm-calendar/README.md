@@ -3,7 +3,7 @@
 Read the person's calendar. Command: `cal`.
 
 ## Setup (the person's steps)
-Get the private ICS link from the calendar (Google: Settings > the calendar > "Secret address in iCal format"; iCloud and Fastmail have a public/shared ICS link). Save it in the dashboard's secret box as `conn-calendar`. For a password-protected ICS file, save JSON instead: `{"url": "...", "user": "...", "password": "..."}` (sent as Basic auth).
+Get the private ICS link from the calendar (Google: Settings > the calendar > "Secret address in iCal format"; iCloud and Fastmail have a public/shared ICS link). Save it in the dashboard's secret box as `conn-calendar`. For a password-protected ICS file, save JSON instead: `{"url": "...", "user": "...", "password": "..."}` (sent as Basic auth). The link is itself a secret, so it must be `https://` or `webcal://`; a plain `http://` one is refused unless the JSON says `"allow_http": true`.
 
 ## Use
 `cal today`, `cal next [N]`, `cal agenda [DAYS]` (default 7). `--file F.ics` reads a file. Times show in the machine's zone.

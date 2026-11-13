@@ -8,9 +8,10 @@ The shared base for connectors: other apps the person can reach the hive through
 - `conn on NAME`, `conn off NAME`: start or stop its service (`conn@NAME`).
 - `conn send NAME TEXT`: send a message to the person's paired chat, to try it.
 - `conn test`: run all the connectors' test suites.
-- `conn set NAME KEY VALUE`: change a config value in `~/.config/h2/conn/NAME.json`. `allow` can't be set this way, and an agent can't set `allow_from`, `self`, `person_number` or `enabled`.
+- `conn set NAME KEY VALUE`: change a config value in `~/.config/h2/conn/NAME.json`. `allow` can't be set this way, and an agent can't set `allow_from`, `self`, `person_number`, `enabled` or `allow_http`.
 - `conn who NAME`, `conn log NAME`, `conn deny NAME SENDER`.
 - Tokens go through the dashboard's lock as `conn-NAME`, and land in `~/.config/h2/secrets`.
+- A connector that logs in to a server you name (Gotify, Matrix, Mattermost, Nextcloud, Rocket.Chat, Zulip, ntfy with a token) wants it as `https://`. Plain `http://` is accepted only on this machine, or after `conn set NAME allow_http true` from the person's own shell (an agent can't set it: the login then crosses the network unencrypted).
 
 ## What it enforces
 
@@ -20,6 +21,7 @@ The shared base for connectors: other apps the person can reach the hive through
 - **Marking:** each inbound post is tagged `(from LABEL)`. It is never the person's word on a hard limit or to the root warden.
 - **Rate:** a cap per chat.
 - **Untrusted text:** mentions are stripped from anything from outside, so it can't start an agent.
+- **Logins stay home:** a redirect is followed, but one that leaves the scheme, host or port it was sent to drops every header that could carry a login (Authorization, keys, tokens, cookies).
 
 ## A known gap
 

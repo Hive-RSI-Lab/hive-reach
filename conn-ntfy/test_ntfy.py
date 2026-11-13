@@ -38,6 +38,16 @@ class Tn(unittest.TestCase):
         self.assertEqual(Fake.got[0][1], b"the plan")
         self.assertEqual(Fake.got[0][2]["Authorization"], "Bearer tok")
 
+    def test_the_public_server_however_written(self):
+        for s in ("https://ntfy.sh", "https://NTFY.sh/", "https://ntfy.sh:443", "http://ntfy.sh", "https://ntfy.sh.", "https://www.ntfy.sh"):
+            self.assertFalse(N.own(s), s)
+        self.assertTrue(N.own("https://push.example.com")); self.assertTrue(N.own(self.url))
+
+    def test_a_token_never_goes_in_the_clear(self):
+        lan = {"topic": "t", "server": "http://push.lan"}
+        self.assertIn("https://", N.Ntfy(lan, "tok").ready()); self.assertEqual(N.Ntfy(lan, "").ready(), "")
+        self.assertEqual(N.Ntfy({**lan, "allow_http": True}, "tok").ready(), "")
+
     def test_setup_makes_a_long_topic_once(self):
         c = N.Ntfy({}, ""); self.assertTrue(c.ready())
         ch = c.setup(); self.assertGreater(len(ch["topic"]), 20); self.assertEqual(ch["pings"], "short")

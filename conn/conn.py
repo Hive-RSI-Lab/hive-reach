@@ -2,7 +2,7 @@
 who may talk (the platform's fixed user id, private chats only, pairing with a code the person approves on the dashboard), one chat = one
 board thread, every inbound post tagged with its channel, a rate cap, no outside text can mention an agent, only posts addressed to the
 person go out, and only files under ~/files. Warden's ruling: post 1105012730b5. Standard library only; connectors that need a package name it in module.json."""
-import datetime as dt, json, os, re, secrets as pysecrets, sqlite3, subprocess, tempfile, threading, time, urllib.error, urllib.request, uuid
+import datetime as dt, ipaddress, json, os, re, secrets as pysecrets, sqlite3, subprocess, tempfile, threading, time, urllib.error, urllib.parse, urllib.request, uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -526,6 +526,44 @@ class Bridge:
             return self.flush()
 
 
+LOGIN_HEADER = re.compile(r"auth|token|key|cookie|secret|pass|user-id", re.I)
+
+
+def origin(url):
+    u = urllib.parse.urlsplit(url)
+    return u.scheme.lower(), (u.hostname or "").lower(), u.port or {"http": 80, "https": 443}.get(u.scheme.lower())
+
+
+class LoginStaysHome(urllib.request.HTTPRedirectHandler):
+    """A redirect is followed, but a login header goes only where it was meant to: one that leaves the scheme, host and port
+    it was sent to (https to http included) drops every header that could carry a login."""
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        new = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if new is not None and origin(req.full_url) != origin(new.full_url):
+            for k in [k for k in new.headers if LOGIN_HEADER.search(k)]: del new.headers[k]
+            for k in [k for k in new.unredirected_hdrs if LOGIN_HEADER.search(k)]: del new.unredirected_hdrs[k]
+        return new
+
+
+OPENER = urllib.request.build_opener(LoginStaysHome())
+
+
+def loopback(host):
+    host = (host or "").lower().rstrip(".")
+    if host == "localhost" or host.endswith(".localhost"): return True
+    try: return ipaddress.ip_address(host).is_loopback
+    except ValueError: return False
+
+
+def plain_refused(url, cfg=None):
+    """Why a login can't go to this server, or "". A token or password sent over http:// (or ws://) to another machine can be read
+    by anything on the way, the LAN included; loopback is fine, and so is a server the person has marked with "allow_http": true."""
+    u = urllib.parse.urlsplit(url or "")
+    if u.scheme.lower() in ("https", "wss") or loopback(u.hostname) or (cfg or {}).get("allow_http") is True: return ""
+    return (f"the server must be https:// ({u.scheme or 'no scheme'} would send the login unencrypted). "
+            "If it can only be http on your own network and you accept that, set \"allow_http\": true in its config")
+
+
 def http(method, url, body=None, headers=None, timeout=60, raw=False):
     """A JSON call over urllib. dict bodies go as JSON, bytes as they are. Errors raise with the status and a little of the answer."""
     h = {"User-Agent": "h2-conn"} | dict(headers or {})
@@ -533,7 +571,7 @@ def http(method, url, body=None, headers=None, timeout=60, raw=False):
         body = json.dumps(body).encode(); h.setdefault("Content-Type", "application/json")
     req = urllib.request.Request(url, data=body, headers=h, method=method)
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r: data = r.read()
+        with OPENER.open(req, timeout=timeout) as r: data = r.read()
     except urllib.error.HTTPError as e:
         raise RuntimeError(f"HTTP {e.code}: {e.read()[:200].decode('utf-8', 'replace')}") from None
     if raw: return data

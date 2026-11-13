@@ -19,9 +19,17 @@ def fail(msg): raise SystemExit("watch: " + msg)
 
 
 # ---- the address: public http(s) only, checked after DNS and pinned for the connection
+NAT64 = ipaddress.ip_network("64:ff9b::/96")
+V4COMPAT = ipaddress.ip_network("::/96")
+
+
 def public_only(ip):
+    """Every v6 form that carries a v4 address inside (mapped, the old compatible form, NAT64, 6to4) is judged by that v4 address."""
     a = ipaddress.ip_address(ip)
-    if a.version == 6 and a.ipv4_mapped: a = a.ipv4_mapped
+    if a.version == 6:
+        if a.ipv4_mapped: a = a.ipv4_mapped
+        elif a in NAT64 or a in V4COMPAT: a = ipaddress.IPv4Address(int(a) & 0xFFFFFFFF)
+        elif a.sixtofour: a = a.sixtofour
     return a.is_global and not a.is_multicast
 
 
