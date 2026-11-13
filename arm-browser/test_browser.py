@@ -3,9 +3,10 @@ import json, os, subprocess, tempfile, unittest
 from pathlib import Path
 HERE = Path(__file__).resolve().parent
 TMP = os.path.realpath(tempfile.gettempdir())
-# browser.mjs drives Chrome through the dashboard's chrome_pipe.mjs; the cases that launch the fake Chrome need it.
-PIPE = os.environ.get("BROWSER_PIPE") or os.path.join(os.path.expanduser("~"), "modules/dash/web/test/chrome_pipe.mjs")
-needs_pipe = unittest.skipUnless(os.path.exists(PIPE), "needs the dash module's chrome_pipe.mjs (set BROWSER_PIPE)")
+# browser.mjs drives Chrome through the dash module's chrome_pipe.mjs. Where dash is not installed (CI), the cases
+# that launch the fake Chrome use fake_chrome_pipe.mjs here, which starts it with the same argv, so every case runs.
+DASH_PIPE = os.path.join(os.path.expanduser("~"), "modules/dash/web/test/chrome_pipe.mjs")
+PIPE = os.environ.get("BROWSER_PIPE") or (DASH_PIPE if os.path.exists(DASH_PIPE) else str(HERE / "fake_chrome_pipe.mjs"))
 
 
 def run(*a, env=None, inp=None):
@@ -42,14 +43,12 @@ class T(unittest.TestCase):
         r = run("run", "https://example.com/", "--user-data-dir", str(inner), env=self.env)
         self.assertEqual(r.returncode, 2)
 
-    @needs_pipe
     def test_fresh_temp_dir_accepted_and_always_passed(self):
         fresh = tempfile.mkdtemp(prefix="browser-")
         run("run", "https://example.com/", "--user-data-dir", fresh, env=self.env)
         argv = json.loads(self.log.read_text())
         self.assertIn(f"--user-data-dir={os.path.realpath(fresh)}", argv)
 
-    @needs_pipe
     def test_default_profile_is_fresh_and_removed(self):
         run("run", "https://example.com/", env=self.env)
         arg = [a for a in json.loads(self.log.read_text()) if a.startswith("--user-data-dir=")]
