@@ -36,8 +36,8 @@ jobs:
         shell: bash
         run: |
           # Each connector and arm is tested from inside its own folder, as the README says. Every
-          # folder runs even after one fails. Two arm-browser cases need the dashboard's
-          # chrome_pipe.mjs, which is not in this repository, and skip here; `test_conn.RealCli`
+          # folder runs even after one fails. arm-browser uses its own fake_chrome_pipe.mjs here, as the
+          # dash module is not installed; `test_conn.RealCli`
           # needs an H2 core and skips too.
           {
             for t in */test_*.py; do d=${t%%/*}; echo "$d"; done | sort -u | while read -r d; do
