@@ -152,4 +152,31 @@ def main(argv):
     return 0
 
 
-if __name__ == "__main__": sys.exit(main(sys.argv[1:]))
+def core_remind(home=None):
+    """A Hive whose core has its own `remind` (H2 core 785b825 on, with its own one-minute timer) uses that: one store, one ticker."""
+    p = (home or Path.home()) / "core" / "remind.py"
+    return p if p.is_file() else None
+
+
+def hand_over(core, store=None):
+    """Move this module's reminders into core's store, once, so nothing set before the move is lost. Returns how many moved."""
+    import importlib.util
+    store = store or STATE / "reminders.json"
+    if not load(store): return 0
+    spec = importlib.util.spec_from_file_location("core_remind", core); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+    dest = m.STATE / "reminders.json"
+    with lock(store), m.lock(dest):
+        items, there = load(store), m.load(dest); have = {i.get("id") for i in there}
+        m.save(there + [i for i in items if i.get("id") not in have], dest); save([], store)
+    return len(items)
+
+
+def entry(argv, home=None, execv=os.execv):
+    core = core_remind(home)
+    if not core: return main(argv)
+    if (n := hand_over(core)): print(f"remind: moved {n} reminder(s) into the core's store", file=sys.stderr)
+    if argv[:1] == ["tick"]: return 0  # the core's own timer ticks; this one only hands over
+    execv(sys.executable, [sys.executable, "-I", str(core), *argv])
+
+
+if __name__ == "__main__": sys.exit(entry(sys.argv[1:]))

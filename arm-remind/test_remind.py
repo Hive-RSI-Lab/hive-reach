@@ -1,5 +1,5 @@
 """python3 -I test_remind.py"""
-import datetime as dt, sys, tempfile, unittest
+import datetime as dt, sys, tempfile, unittest, unittest.mock
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import remind as R
@@ -59,6 +59,26 @@ class T(unittest.TestCase):
         with self.assertRaises(SystemExit): R.add("at", "+1h", "x", store=self.st, now=NOW, thread=None)
         for _ in range(R.MAX_ITEMS): self.add("at", "+1h", "x")
         with self.assertRaises(SystemExit): self.add("at", "+1h", "x")
+
+
+class Defer(unittest.TestCase):
+    """With a core that has its own remind, the module hands its reminders over and runs the core's."""
+    def test_hands_over_and_execs_core(self):
+        import os, json
+        home = Path(tempfile.mkdtemp()); (home / "core").mkdir(); st = home / "st"
+        (home / "core" / "remind.py").write_text("import fcntl, json\nfrom pathlib import Path\nSTATE = Path(%r)\n" % str(st) +
+            "def load(p): return json.loads(Path(p).read_text()) if Path(p).exists() else []\n"
+            "def save(i, p): Path(p).parent.mkdir(parents=True, exist_ok=True); Path(p).write_text(json.dumps(i))\n"
+            "def lock(p): Path(p).parent.mkdir(parents=True, exist_ok=True); f = open(str(p) + '.lock', 'w'); fcntl.flock(f, fcntl.LOCK_EX); return f\n")
+        mine = Path(tempfile.mkdtemp()) / "reminders.json"
+        R.add("at", "+1h", "old one", store=mine, now=NOW, thread="t1")
+        with unittest.mock.patch.object(R, "STATE", mine.parent), unittest.mock.patch("sys.stderr"):
+            seen = []
+            self.assertEqual(R.entry(["tick"], home=home, execv=lambda *a: seen.append(a)), 0); self.assertEqual(seen, [])
+            R.entry(["list"], home=home, execv=lambda *a: seen.append(a))
+        self.assertEqual([i["text"] for i in json.loads((st / "reminders.json").read_text())], ["old one"]); self.assertEqual(R.load(mine), [])
+        self.assertEqual(seen[0][1][-2:], [str(home / "core" / "remind.py"), "list"])
+        self.assertIsNone(R.core_remind(Path(tempfile.mkdtemp())))
 
 
 if __name__ == "__main__": unittest.main()
