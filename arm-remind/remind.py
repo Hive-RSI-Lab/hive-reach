@@ -174,9 +174,11 @@ def hand_over(core, store=None):
 def entry(argv, home=None, execv=os.execv):
     core = core_remind(home)
     if not core: return main(argv)
-    if (n := hand_over(core)): print(f"remind: moved {n} reminder(s) into the core's store", file=sys.stderr)
+    boxed = bool(os.environ.get("H2_BROKER"))  # in a sandboxed agent the stores here are the box's own, which no timer reads
+    if not boxed and (n := hand_over(core)): print(f"remind: moved {n} reminder(s) into the core's store", file=sys.stderr)
     if argv[:1] == ["tick"]: return 0  # the core's own timer ticks; this one only hands over
-    execv(sys.executable, [sys.executable, "-I", str(core), *argv])
+    cli = core.parent / "h2"  # the core's command forwards through the broker from a box, as `h2 remind` does; remind.py alone would not
+    execv(sys.executable, [sys.executable, "-I", str(cli), "remind", *argv] if cli.is_file() else [sys.executable, "-I", str(core), *argv])
 
 
 if __name__ == "__main__": sys.exit(entry(sys.argv[1:]))

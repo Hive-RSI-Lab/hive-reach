@@ -80,5 +80,17 @@ class Defer(unittest.TestCase):
         self.assertEqual(seen[0][1][-2:], [str(home / "core" / "remind.py"), "list"])
         self.assertIsNone(R.core_remind(Path(tempfile.mkdtemp())))
 
+    def test_box_goes_through_core_cli_and_keeps_its_store(self):
+        """In a sandboxed agent (H2_BROKER set) the module runs `core/h2 remind`, which forwards to the broker, and hands nothing over from the box's own store."""
+        import os
+        home = Path(tempfile.mkdtemp()); (home / "core").mkdir(); (home / "core" / "remind.py").write_text("raise SystemExit('must not load')\n"); (home / "core" / "h2").write_text("")
+        mine = Path(tempfile.mkdtemp()) / "reminders.json"
+        R.add("at", "+1h", "boxed", store=mine, now=NOW, thread="t1")
+        seen = []
+        with unittest.mock.patch.object(R, "STATE", mine.parent), unittest.mock.patch.dict(os.environ, {"H2_BROKER": "/x/sock"}):
+            R.entry(["at", "+1m", "hi"], home=home, execv=lambda *a: seen.append(a))
+        self.assertEqual(seen[0][1][-5:], [str(home / "core" / "h2"), "remind", "at", "+1m", "hi"])
+        self.assertEqual([i["text"] for i in R.load(mine)], ["boxed"])
+
 
 if __name__ == "__main__": unittest.main()
