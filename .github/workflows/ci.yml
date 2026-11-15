@@ -44,6 +44,9 @@ jobs:
               echo "== $d"
               (cd "$d" && python3 -m unittest discover -p "test_*.py") || echo "FAILED folder $d"
             done
+            # `module add` links each command in module.json onto PATH as it is, so each must be executable.
+            echo "== module.json commands"
+            python3 -c 'import json, os, sys; bad = [f for f in json.load(open("module.json"))["bin"].values() if not os.access(f, os.X_OK)]; print("not executable:", *bad) if bad else print("all executable"); sys.exit(1 if bad else 0)' || echo "FAILED bins"
             for t in */*.test.mjs; do
               echo "== $t"
               node --test "$t" || echo "FAILED node $t"
