@@ -5,7 +5,7 @@ Post a reminder into a board thread at a time or on a schedule. Command: `remind
 H2 has no reminder of its own (checked: `~/core/h2`, `~/kb/h2.md` only schedule internal jobs: keeper, outcomes, watchdog, asks), so this is a new small thing, not a wrapper.
 
 ## On a Hive whose core has `remind`
-H2's core now ships `remind` itself, with its own one-minute timer that a fresh install turns on (core 785b825). When `~/core/remind.py` exists, this module defers to it. It moves any reminders from its own store into the core's store, once. Then `remind ...` runs the core's command, and `remind tick` does nothing, so there is only one ticker and one store. You can turn this module's timer off (`systemctl --user disable --now arm-remind.timer`). What follows describes a core without it.
+H2's core now ships `remind` itself, with its own one-minute timer that a fresh install turns on (core 785b825). When `~/core/remind.py` exists, this module defers to it. It moves any reminders from its own store into the core's store, once. Then `remind ...` runs the core's command, and `remind tick` does nothing, so there is only one ticker and one store. It runs the core's command (`core/h2 remind`), so from a sandboxed agent the reminder goes through the broker to the real store, as `h2 remind` does. You can turn this module's timer off (`systemctl --user disable --now arm-remind.timer`). What follows describes a core without it.
 
 ## Use
 - `remind at +30m "check the build" --to a1b2c --thread T` (also `+2h`, `+1d`, `09:00` for the next one, `"2026-11-06 09:00"` in local time)
